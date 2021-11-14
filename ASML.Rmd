@@ -1,0 +1,298 @@
+---
+title: "ASML_Assessement"
+author: "Gustavo Chinchayan"
+date: "9/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1:
+
+Importing of the file data1.txt on to the Rstudio platform
+
+```{r}
+data1 <- read.table("C:/Users/USER/Documents/R/R Exercize/data1.txt", header=FALSE, col.names = "Values")
+```
+
+by observing the data set to make sure it has been loaded successfully 
+```{r}
+str(data1)
+head(data1, 10)
+which(is.na(data1)) #No Null values present in the dataset1 file
+```
+
+In theoretical context, the Poisson Process meets the following criteria:
+
+1. Events and independent of each other. The occurrence of one event does not affect the probability another event will occur.
+2. The average (events per time period) is constant.
+3. Two events cannot occur at the same time (similar to a Bernoulli Trial. 
+
+Beginning with the information, the first step is to compute the exponential random variable into a data-frame variable
+
+```{r}
+exponentialrv <- {}
+
+for (i in c(1:(length(data1$Values)-1))) 
+{
+  exponentialrv[i] <- data1$Values[i+1]-data1$Values[i]
+}
+
+dfexponentialrv <- data.frame(exponentialrv)
+head(dfexponentialrv,15)
+```
+
+Plotting the histogram of distribution we can observe the exponential random variable
+
+```{r}
+hist(dfexponentialrv$exponentialrv, breaks=40, xlab = 'Time', freq = FALSE, main='Histogram Distribution of time arrivals')
+```
+
+A Homogenous Poisson process has a constant rate parameter $\lambda$ while a Non-Homogenous Poisson process can have a variable rate parameter $\lambda(t)$ that is the function of time.$P(X)=\frac{\lambda ^{x}e^{-\lambda}}{x!}$
+
+In order to prove that this data set is similar to the Homogenous Poisson process, we can prove by common methods of construction to provide an estimate of $\lambda$ and then make comparisons of the estimates.
+
+
+#### Method of Moments
+
+We can calculate $\lambda$ by: $$E(X) = \frac{1}{\lambda_n}$$
+
+by isolating for $\lambda_n$ formula changes to $\lambda_n = \frac{1}{E(X)}$
+
+similarly its known that $E(X) = \frac{1}{n} \sum_{i=1}^{n}(X_i) = \tilde{X_n}$
+
+thus the calculation results
+
+```{r}
+mmlambda <- (1/mean(dfexponentialrv$exponentialrv))
+mmlambda
+```
+
+#### Method: Maximum Likelihood
+
+Maximum likelihood to estimate $\lambda$ is solved with this formula:
+
+$$l(\lambda)=\lambda^n\mathrm{e}{-\lambda \sum_{i=1}^{n}x_i}$$
+As we are trying to prove Exponential function we use the following formula 
+
+$$ln(l(\lambda))=n \ln({\lambda}) - \lambda \sum_{i=1}^{n}x_i\\$$
+
+To further explain the critical points the derivative of the function equates to 0 $ln(l(\lambda_n)=0$ therefore we can solve for $\lambda$
+with $\hat{\lambda} = \frac {n}{\sum_{i=1}^{}x_i} = \frac {1}{\tilde{X}}$
+
+To verify that the critical points involve a maximum its computed: $ \frac {-n}{{\lambda^2}} < 0$, in order to assure that critical point is related to the maximum
+
+Thus, $$ \hat{\lambda_n} = \frac {1}{\tilde{X_n}}$$ is the estimator of $lambda$ by maximum likelihood, as observed this is the exact same result as the previous method of moments explained.
+
+#### Kolmogorov-Smirnov test
+
+By computing the Kolmogorov-Smirnov test [ks.test() function in R], this is anon-parametric test of the equality of discontinuous and continuous of a one dimension probability distribution that is used to compare the sample with the reference probability test. By setting  $\alpha=0.05$, At this instance, the $H_0$ (null hypothesis) states that there is no difference between two distributions. 
+
+```{r}
+ks.test(dfexponentialrv$exponentialrv, "pexp", mmlambda)
+```
+Observing that that the P-value results to 0.5568, it can be concluded to accept the Null hypothesis ($>0.05$), in this instance exponential distribution is present. 
+
+To visualize this a curve with rate of $\lambda$ obtained in the previous tests is added to the previous histogram.
+
+```{r}
+hist(dfexponentialrv$exponentialrv, breaks=40, xlab = 'Time', freq = FALSE, main='Histogram Distribution of time arrivals')
+curve(dexp(x, rate = mmlambda), from = 0, col = "green", add = TRUE)
+```
+
+
+## Exercise 2:
+
+Importing of the files ukcomp1_r.dat and ukcomp2_r.daton to the Rstudio platform.
+It is noted that ukcomp1_r.dat is the training set and ukcomp2_r.dat is the test set.
+
+```{r}
+trainukcomp <- read.table("ukcomp1_r.dat", sep="",dec=".", header = TRUE, check.names = FALSE)
+testukcomp <- read.table("ukcomp2_r.dat", sep="",dec=".", header = TRUE, check.names = FALSE)
+```
+
+Observing the data set to make sure it has been loaded successfully
+
+Training Data Set
+```{r}
+str(trainukcomp)
+head(trainukcomp, 10)
+which(is.na(trainukcomp))#No Null values present in the dataset1 file
+
+```
+Test Data set 
+```{r}
+str(testukcomp)
+head(testukcomp, 10)
+which(is.na(testukcomp))#No Null values present in the dataset1 file
+
+```
+#### PCA
+
+By looking at the Principal component analysis: Summarizes and visualizes all the most information contained in a multivariate data set. 
+Using the factoextra library. 
+
+```{r include=FALSE}
+library(factoextra)
+```
+
+
+```{r}
+my_data <- trainukcomp[,-1]
+res.pca <- prcomp(my_data, scale = TRUE)
+fviz_pca(res.pca)
+```
+
+In the plot above: 
+Dimensions 1 and 2 retained under 60% of the total information contained in the data set.
+It is observed that there are about 4 variables that are positively correlated from each other, while the rest are negatively correlated (on the opposite side of the plots)
+
+In order to explain the target variable: *RETCAP*, the variables will be identified, its essential to begin with a Linear regression model.
+
+#### Linear Regression
+
+The data set contains 13 variables, in this particular context the target variable is a continuous value, explained by 12 other variables.
+
+A full multiple linear regression can be used as a primary step of the variable selection process.
+```{r}
+linearm_model=lm(RETCAP~., data = trainukcomp)
+summary(linearm_model)$coef
+```
+This coefficient table shows the beta coefficient estimates and their significance level. 
+
+```{r}
+summary(linearm_model)
+```
+
+As we notice in this Fisher test, the p-value for the entire model is less than $.05$, which indicates that we can reject the $H_0$ Null hypothesis and make a note that there are some variables present in the model that will explain RETCAP variable. This is because as we look at all the coefficients in this test, the most significant variables (those that have a p-value which $<.05$) are LOGSALE, CURRAT, and NFATAST. 
+
+For observation purposes, its possible to isolate these individual variables and observe their results
+```{r}
+lmmodel <- lm(RETCAP ~ LOGSALE + CURRAT + NFATAST, data=trainukcomp)
+summary(lmmodel)
+```
+As seen here, although the p-value for this model is low, the adjusted R2 is close to 0, which indicates that the regression model did not explain much of the variability in the outcome. 
+
+It is essential to make sure that our model agrees with the conditions of the gaussianity of the noise and that variance of noise is constant, so we use the plot() function in order to visualize the QQplots and Residiuals vs fitted values.
+```{r}
+plot(linearm_model)
+```
+
+As observed with the graphs above, they all meet the conditions set in this model.
+
+After linear models computed it is essential to go through a variable selection process in order to get an idea which variables are important that can explain RETCAP
+
+#### Variable Selection
+
+Stepwise regression can be used by removing predictors in the predictive model, in order to find a subset of variables in the data resulting as the best best performing model that yields the lowest prediction error in this model.
+
+In this context we will use 2 methods, the Backward Selection (removes the least contributive predictors, and stops when all predictors are statistically signficant) and Stepwise Selection (combination of forward and backward selection)
+
+Backward
+
+```{r include=FALSE}
+library(MASS)
+```
+
+
+```{r}
+backwarduk1 <- stepAIC(linearm_model,~., direction="backward", tests="F")
+summary(backwarduk1)
+
+```
+the most significant variables are WCFTDT, LOGSALE, CURRAT, NFATAST 
+
+STEPWISE SELECTION
+
+```{r}
+stepwiseuk1 <- stepAIC(linearm_model,~., direction="both", tests="F")
+summary(stepwiseuk1)
+
+```
+
+The stepwise function as well computes that the most influential variables in this model are WCFTDT, LOGSALE, CURRAT, NFATAST.
+
+For comparative purposes we can also use the Penalized regression models for further variable selection
+
+In this Instance, the Least Absolute Shrinkage, and Selection Operator (also known as Lasso) can be used, this will shrink the regression coefficiants toward zero by penalizing the regression model with a penalty called L-1 norm (this is the sum of th absolute coefficients). 
+
+```{r include=FALSE}
+library(glmnet)
+```
+
+In order to begin computing Lasso, first must find the best lambda value using cross validation
+
+```{r}
+x<- model.matrix(RETCAP~., trainukcomp)[,-1] #Predictor Variables
+y <- trainukcomp$RETCAP #Explained Variable
+
+cv <- cv.glmnet(x, y, alpha=1, nfolds = 10)
+cv$lambda.min
+```
+```{r}
+lassomodel <- glmnet(x, y, alpha = 1, lambda = cv$lambda.min)
+coef(lassomodel)
+```
+
+```{r}
+lassomodelm <- lm(RETCAP ~ LOGSALE + CURRAT + NFATAST + GEARRAT + CAPINT + PAYOUT + WCFTCL + FATTOT, data=trainukcomp)
+summary(lassomodelm)
+```
+```{r}
+lassomodelm2 <- lm(RETCAP ~ LOGSALE + CURRAT +  WCFTCL, data=trainukcomp)
+plot(lassomodelm2)
+```
+
+Performing another linear regression model on the variables obtained in the Lasso Regression model, confirms with the previous variable selection methods performed (Stepwise and Backward selection) that the most essential variables that explains RETCAP are WCFTDT, LOGSALE, CURRAT, and NFATAST
+The best performing model for variable selection in this instance were Stepwise and Backward selection as they both yielded higher Adjusted R2 at .70
+
+
+## Exercise 3:
+The Multiple tests based on Gaussian approximation of the Unitary Events (MTGAUE) method with delayed coincidence count is an improvement to the existing Unitary events (UE) method. This method has been used in the previous decades to detect patterns of coincident joint spike activity among simultaneously recorded neurons. 
+
+![Spike train of a neuron voltage over time ](C:/Users/USER/Documents/R/R Exercize/3asml1.jpg)
+
+
+In the field of neuroscience, neurons are made up of made up of intracellular and extracellular membranes, their main function are conducting charges across the entire membrane just like a battery. During a spike, sudden electrical impulses are shot through one brain cell on its way to the next. Spikes are known as the carrier of information in the brain, which drives what we think and do as human beings. Understanding how neural networks work and how neurons work in tangent with each other is to produce these spikes is one of the biggest questions in the twenty-first century in neuroscience and mathematics 
+The prior technique of spike detection, UE analysis methods detects spicuous patterns of synchronous spike among simultaneous recorded single neurons. Give the firing rates of the neurons, the statistical significance of this pattern is evaluated my comparing the empirical number of occurrences to the number of expected. The focus of the UE method is the proper formulation of the null hypothesis and the derivation of the corresponding count distribution of synchronous spike events (A) used in the significance test.  
+
+![Spike Events](C:/Users/USER/Documents/R/R Exercize/3asml8.jpg) 
+
+
+Another attribute of this UE method was to relate the occurrence of spike synchrony behavior. This test used a sliding window analysis to calculate expected number of coincidences (C) and make evaluations if they were significant.
+
+![Coincidence Events](C:/Users/USER/Documents/R/R Exercize/3asml3.jpg)
+
+One major drawback to the UE method, that is later proved by the MTGAUE, is that assumptions of the individual neuron spike and coincidence of counts are following a Poisson distribution as well as the use of the binned coincidence count. Up to 60% of coincidences can be lost when the bin length is the typical delay between two spikes participating to the same coincidence. MTGAUE aims to complete the study of this notion of multiple shift coincidence count by proposing a new method that extends the validity of the original UE.
+This article focuses on the symmetric multiple shift coincidence count, which is more adapted to purpose of testing independence between two spike trains in each window. The issue is that neurons are not homogeneous in time. There are variations in spikes throughout a given time period. The main point is that there needs to be distinction between symmetric and asymmetric multiple shift coincidence count.
+
+![Coincidence Events](C:/Users/USER/Documents/R/R Exercize/3asml4.jpg)
+
+The null hypotheses in this test is that the spike trains of two neurons, $N_1$ and $N_2$, are independent $(H_0)$ and the alternative is that both of them are dependent $(H_1)$. 2 assumptions are put in place, the first is that N1 and N2 are poisson variables and the second is that they are stationary on the given window. Thus, expectation and variance can be given by.
+
+ ![Expectation and Variance](C:/Users/USER/Documents/R/R Exercize/3asml6.jpg)
+
+ The coincidence must also be taken into consideration for the binning framework to function, this is where the UE method takes the Poisson distribution, however the article suggests to use the delayed coincidence count with multiple shift methods. In definition, the delayed coincidence count is denoted by 
+ 
+$X = \int_{W^2}^{} 1_{|x-y|\leq \delta}N_1(dx)N_2(dy)$
+
+where $\delta$ is defined as the delay on the window $W$. $N_1$ and $N_2$ are discretized with resolution h. The new method focuses on the symmetric delayed coincidence count X, this is because the symmetric coincidence count is much more adapted to the purpose of testing hypothesis between N1 and N2 on a fixed wind W. Following this the authors prove the Gaussian approximation of the UE methods (GAUE) where the symmetric test, unilateral test by upper value, and unilateral test by lower value can be formalized similarly to the original UE multiple shift method.
+
+- the symmetric test $\Delta_{GAUE}^{sym}(\alpha )$ of $H_o$, which rejects if $H_0$ if $\bar{m}$ and $\hat{m_0}$ are too different
+- the unitaleral test by upper value $\Delta_{GAUE}^{+}(\alpha )$ which rejects $H_0$ if $\bar{m}$ is too large
+- the unilateral test by lower vallue $\Delta_{GAUE}^{-}(\alpha )$ which rejects $H_0$ if $\bar{m}$ is too small
+
+
+For both methods, the symmetric test encompasses both the upper and lower cases at a smaller level. Moreover, the GAUE tests are aimed to detect both profusion and lack of coincidences.
+In addition, the authors mention preference of the Benjamini-Hochberg approach to control the false discovery rate (FDR), over the familywise error rate.
+
+ ![Expectation and Variance](C:/Users/USER/Documents/R/R Exercize/3asml7.jpg)
+
+If the p-values are uniformly and independently distributed under the null hypothesis, then the procedure guarantees an FDR less than q. When combining the GAUE tests, with the assumptions required for Benjamini-Hochberg is not satisfied due to gaps between what is theoretical and practiced, however the difference does not significantly impact the FDR.
+
+$\mathbf{Conclusion:}$
+
+MTGAUE is effective using symmetric tests when the p-value is assigned to different windows. The article concludes that involving the Gaussian approximation and Benjamani-Horchberg multiple test procedure can improve a more precise statistical method without an edge effect. The article proves the theory by running thousands of simulated tests on overlapping windows to compare MTGAUE and UE’s detection performance on a wide range of parameters. In fact, they prove that the MTGAUE is a robust improvement to the prior UE method due to its handling of large datasets with a far stable FDR levels set at 0.05.
+
